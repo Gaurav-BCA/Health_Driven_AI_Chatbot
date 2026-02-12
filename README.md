@@ -15,7 +15,7 @@ ArogyaAI is a MERN stack-based web application designed to provide AI-driven hea
 - **Frontend**: React.js, Vite, TailwindCSS, Firebase
 - **Backend**: Node.js, Express.js
 - **Database**: MongoDB
-- **AI Integration**: Gemini API / OpenRouter (configured in backend)
+- **AI Integration**: Grok (configured in backend)
 
 ## 📂 Project Structure
 

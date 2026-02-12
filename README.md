@@ -35,7 +35,7 @@ ArogyaAI/
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/Gaurav-BCA/Health_Driven_AI_Chatbot_For_Disease_Awareness.git
+git clone https://github.com/Gaurav-BCA/Health_Driven_AI_Chatbot.git
 cd ArogyaAI
 ```
 

@@ -66,8 +66,12 @@ const Chat = () => {
             recognitionRef.current.interimResults = false;
 
             recognitionRef.current.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                setInput(prev => prev + ' ' + transcript);
+                const transcript = event.results[0][0].transcript.trim();
+                setInput(prev => {
+                    // Prevent appending if the sentence was just added (fixes Chrome duplicate event bug)
+                    if (prev.trim().endsWith(transcript)) return prev;
+                    return prev ? prev + ' ' + transcript : transcript;
+                });
                 setIsListening(false);
             };
 

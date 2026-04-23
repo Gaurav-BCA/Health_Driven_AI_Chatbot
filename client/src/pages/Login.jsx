@@ -27,9 +27,10 @@ const Login = () => {
         setLoading(true);
         setError('');
 
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
         const endpoint = isSignUp
-            ? 'http://localhost:5000/api/auth/signup'
-            : 'http://localhost:5000/api/auth/signin';
+            ? `${API_URL}/api/auth/signup`
+            : `${API_URL}/api/auth/signin`;
 
         try {
             const response = await fetch(endpoint, {

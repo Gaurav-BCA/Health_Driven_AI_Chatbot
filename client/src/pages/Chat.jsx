@@ -12,6 +12,7 @@ const Chat = () => {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
     const [chatHistory, setChatHistory] = useState([]);
     const [isLoadingChat, setIsLoadingChat] = useState(false);
@@ -202,7 +203,7 @@ const Chat = () => {
     const fetchHistory = async (userId) => {
         if (!userId) return;
         try {
-            const response = await fetch(`http://localhost:5000/api/chat/history/${userId}`);
+            const response = await fetch(`${API_URL}/api/chat/history/${userId}`);
             if (response.ok) {
                 const data = await response.json();
                 setChatHistory(data);
@@ -215,7 +216,7 @@ const Chat = () => {
     const loadChatMessages = async (chatId) => {
         setIsLoadingChat(true);
         try {
-            const response = await fetch(`http://localhost:5000/api/chat/${chatId}`);
+            const response = await fetch(`${API_URL}/api/chat/${chatId}`);
             if (!response.ok) throw new Error('Failed to load chat');
             const data = await response.json();
 
@@ -246,7 +247,7 @@ const Chat = () => {
         if (!window.confirm("Are you sure you want to delete this chat?")) return;
 
         try {
-            await fetch(`http://localhost:5000/api/chat/${chatId}`, { method: 'DELETE' });
+            await fetch(`${API_URL}/api/chat/${chatId}`, { method: 'DELETE' });
             setChatHistory(prev => prev.filter(c => c._id !== chatId));
             if (activeChatId === chatId) handleNewChat();
         } catch (error) {
@@ -267,7 +268,7 @@ const Chat = () => {
 
         if (user && user.id) {
             try {
-                const response = await fetch('http://localhost:5000/api/auth/settings', {
+                const response = await fetch(`${API_URL}/api/auth/settings`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ userId: user.id, historyRetention: value })
@@ -294,7 +295,7 @@ const Chat = () => {
 
         try {
             const userId = user?.id || 'guest';
-            const response = await fetch('http://localhost:5000/api/chat/message', {
+            const response = await fetch(`${API_URL}/api/chat/message`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

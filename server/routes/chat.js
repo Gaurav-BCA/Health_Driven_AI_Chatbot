@@ -75,7 +75,7 @@ You MUST use this EXACT structure:
 
 // Helper: Call Groq API
 async function generateAIResponse(messages, customSystemPrompt = null) {
-    console.log("Calling Groq API...");
+    // console.log("Calling Groq API...");
 
     // Prepare messages for Groq
     const sysPrompt = customSystemPrompt !== null ? customSystemPrompt : SYSTEM_PROMPT;
@@ -146,7 +146,7 @@ router.get('/history/:userId', async (req, res) => {
                 const emptyChatIds = userChatIds.filter(id => !activeSet.has(id.toString()));
 
                 if (emptyChatIds.length > 0) {
-                    console.log(`Cleaning up ${emptyChatIds.length} empty chat sessions for user ${userId}`);
+                    // console.log(`Cleaning up ${emptyChatIds.length} empty chat sessions for user ${userId}`);
                     await Chat.deleteMany({ _id: { $in: emptyChatIds } });
                 }
             }

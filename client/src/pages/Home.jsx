@@ -34,7 +34,7 @@ const Home = () => {
     };
 
     const handleTopicClick = (topicName) => {
-        console.log(`User selected topic: ${topicName}`);
+        // console.log(`User selected topic: ${topicName}`);
         navigate('/chat', { state: { initialQuery: `Tell me about ${topicName}` } });
     };
 

@@ -66,13 +66,11 @@ const Chat = () => {
             recognitionRef.current.interimResults = false;
 
             recognitionRef.current.onresult = (event) => {
-                const transcript = event.results[0][0].transcript.trim();
-                setInput(prev => {
-                    // Prevent appending if the sentence was just added (fixes Chrome duplicate event bug)
-                    if (prev.trim().endsWith(transcript)) return prev;
-                    return prev ? prev + ' ' + transcript : transcript;
-                });
-                setIsListening(false);
+                let currentTranscript = Array.from(event.results)
+                    .map(result => result[0].transcript)
+                    .join('');
+                const baseInput = recognitionRef.current.savedInput ? recognitionRef.current.savedInput.trim() + ' ' : '';
+                setInput(baseInput + currentTranscript.trim());
             };
 
             recognitionRef.current.onerror = (event) => {
@@ -107,6 +105,7 @@ const Chat = () => {
         } else {
             if (recognitionRef.current) {
                 recognitionRef.current.lang = voiceLang;
+                recognitionRef.current.savedInput = input;
             }
             setIsListening(true);
             recognitionRef.current?.start();

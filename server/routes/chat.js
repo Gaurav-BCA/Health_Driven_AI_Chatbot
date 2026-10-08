@@ -81,6 +81,31 @@ You MUST start with this EXACT first line:
 - **Hindi Support**: If the user speaks Hindi, you MUST translate the entire response, including the structured headers (e.g., use "**जोखिम स्तर**" instead of "RISK LEVEL", "**1. अवलोकन**" instead of "1. Overview", etc.). Ensure the Hindi is natural and polite.
 `;
 
+// Helper to extract clean disease or health condition title
+function extractHealthTitle(message) {
+    if (!message) return null;
+    const lower = message.toLowerCase().trim();
+
+    // Ignore conversational closing words
+    if (/^(thanks|thank you|ok|okay|got it|bye|hello|hi|yes|no)$/i.test(lower)) {
+        return null;
+    }
+
+    // Direct keyword mapping for common diseases & health queries
+    if (lower.includes("dengue")) return "Dengue Information";
+    if (lower.includes("malaria")) return "Malaria Check";
+    if (lower.includes("diabetes")) return "Diabetes Care";
+    if (lower.includes("chest pain")) return "Chest Pain Evaluation";
+    if (lower.includes("fever")) return "Fever Symptoms & Care";
+    if (lower.includes("cough") || lower.includes("cold")) return "Respiratory Care";
+    if (lower.includes("headache") || lower.includes("migraine")) return "Headache Guidance";
+    if (lower.includes("blood pressure") || lower.includes("hypertension")) return "Blood Pressure Management";
+    if (lower.includes("tuberculosis") || lower.includes("tb")) return "Tuberculosis Awareness";
+    if (lower.includes("cholera") || lower.includes("diarrhea")) return "Digestive Health";
+
+    return null;
+}
+
 // Helper: Call Groq API
 async function generateAIResponse(messages, customSystemPrompt = null) {
     const sysPrompt = customSystemPrompt !== null ? customSystemPrompt : SYSTEM_PROMPT;
@@ -221,16 +246,28 @@ router.post('/message', async (req, res) => {
             console.warn("⚠️ MongoDB Operation Warning:", dbErr.message);
         }
 
-        // 2. Generate Title (if new and DB available)
-        if (chat && (isNew || messageCount <= 2)) {
+        // 2. Generate Title (ONLY if chat has no valid disease title yet)
+        const isTitleMissing = !chat.title || chat.title === 'New Chat' || chat.title === 'Untitled Chat' || chat.title.toLowerCase().includes('not a health query');
+
+        if (chat && (isNew || isTitleMissing)) {
             try {
-                const titlePrompt = `Analyze the following user health query and generate a short, specific title (max 4-5 words) that summarizes the health condition or topic. 
-                User Query: "${message}"
-                Title:`;
-                const promptMsg = [{ role: "user", content: titlePrompt }];
-                const aiTitle = await generateAIResponse(promptMsg, "You are a helpful assistant that generates short titles.");
-                chat.title = aiTitle?.replace(/["']/g, '').trim() || message.substring(0, 30);
-                if (mongoose.connection.readyState === 1) await chat.save();
+                const directTitle = extractHealthTitle(message);
+                if (directTitle) {
+                    chat.title = directTitle;
+                } else if (!/^(thanks|thank you|ok|okay|got it|bye|hello|hi)$/i.test(message.trim())) {
+                    const titlePrompt = `Extract the main disease, medical condition, or health symptom from this user query into a clean 2 to 4 word title (e.g., "Dengue Guidelines", "Chest Pain Triage", "Malaria Symptoms", "Fever Care"). Do NOT return phrases like "Not a Health Query" or "Thank You". Return ONLY the concise title.
+User Query: "${message}"`;
+                    const promptMsg = [{ role: "user", content: titlePrompt }];
+                    const aiTitle = await generateAIResponse(promptMsg, "You are a medical topic extractor. Output ONLY a 2-4 word disease or health title.");
+
+                    let cleanedTitle = aiTitle?.replace(/["']/g, '').trim();
+                    if (cleanedTitle && !cleanedTitle.toLowerCase().includes("not a health query") && !cleanedTitle.toLowerCase().includes("thank")) {
+                        chat.title = cleanedTitle;
+                    } else {
+                        chat.title = message.substring(0, 30);
+                    }
+                }
+                if (mongoose.connection.readyState === 1 && chat.title) await chat.save();
             } catch (err) {
                 console.error("Title Generation Failed:", err.message);
             }

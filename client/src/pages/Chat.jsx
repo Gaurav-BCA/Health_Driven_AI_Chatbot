@@ -314,7 +314,7 @@ const Chat = () => {
             setIsTyping(false);
             setMessages(prev => [...prev, { role: 'bot', text: data.reply }]);
 
-            if (!activeChatId && data.chatId) {
+            if (data.chatId) {
                 setActiveChatId(data.chatId);
                 fetchHistory(userId);
             }

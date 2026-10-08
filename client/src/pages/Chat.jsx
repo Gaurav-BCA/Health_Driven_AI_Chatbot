@@ -349,10 +349,32 @@ const Chat = () => {
     // Helper to parse risk level from message
     const getRiskLevel = (text) => {
         if (!text) return null;
-        const lowerText = text.toLowerCase();
-        if (lowerText.includes('risk level: high') || lowerText.includes('जोखिम स्तर: उच्च')) return 'high';
-        if (lowerText.includes('risk level: medium') || lowerText.includes('जोखिम स्तर: मध्यम')) return 'medium';
-        if (lowerText.includes('risk level: low') || lowerText.includes('जोखिम स्तर: कम')) return 'low';
+
+        const headerSnippet = text.substring(0, 400);
+
+        // 1. Check HIGH Risk (English & Hindi patterns)
+        const highRegex = /(risk\s*level|risk|severity|level|जोखिम\s*स्तर|जोखिम)\s*[:=\-*\s]*\s*(high|red|critical|emergency|severe|उच्च|गंभीर)/i;
+        if (highRegex.test(headerSnippet) || /\b(high risk|critical risk|emergency risk|उच्च जोखिम)\b/i.test(headerSnippet)) {
+            return 'high';
+        }
+
+        // 2. Check MEDIUM Risk
+        const mediumRegex = /(risk\s*level|risk|severity|level|जोखिम\s*स्तर|जोखिम)\s*[:=\-*\s]*\s*(medium|yellow|moderate|मध्यम|औसत)/i;
+        if (mediumRegex.test(headerSnippet) || /\b(medium risk|moderate risk|मध्यम जोखिम)\b/i.test(headerSnippet)) {
+            return 'medium';
+        }
+
+        // 3. Check LOW Risk
+        const lowRegex = /(risk\s*level|risk|severity|level|जोखिम\s*स्तर|जोखिम)\s*[:=\-*\s]*\s*(low|green|mild|कम|निम्न|सामान्य)/i;
+        if (lowRegex.test(headerSnippet) || /\b(low risk|mild risk|कम जोखिम|सामान्य जोखिम)\b/i.test(headerSnippet)) {
+            return 'low';
+        }
+
+        // Fallback search full text
+        if (/\b(high risk|high-risk|emergency|severe pain|chest pain)\b/i.test(text)) return 'high';
+        if (/\b(medium risk|medium-risk|moderate)\b/i.test(text)) return 'medium';
+        if (/\b(low risk|low-risk|mild)\b/i.test(text)) return 'low';
+
         return null;
     };
 

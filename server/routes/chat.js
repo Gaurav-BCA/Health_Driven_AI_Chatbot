@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const Chat = require('../models/Chat');
 const Message = require('../models/Message');
 const User = require('../models/User');
@@ -19,24 +20,31 @@ CORE PRINCIPLES (NON-NEGOTIABLE)
 4.  **Clarity Over Long Explanations**: Be concise. Use bullet points.
 
 ====================================
-1. RISK TRIAGE ENGINE
+1. RISK TRIAGE ENGINE (STRICT ACCURATE EVALUATION)
 ====================================
-For EVERY user health query, you MUST assess risk and output a classification line.
+For EVERY user health query, you MUST assess clinical severity and start your response with an exact classification line:
+- **RISK LEVEL: HIGH** (or **जोखिम स्तर: उच्च** in Hindi)
+- **RISK LEVEL: MEDIUM** (or **जोखिम स्तर: मध्यम** in Hindi)
+- **RISK LEVEL: LOW** (or **जोखिम स्तर: कम** in Hindi)
 
-Levels:
-- **LOW RISK** (Green): General awareness, prevention, wellness tips.
-- **MEDIUM RISK** (Yellow): Mild symptoms, early warning signs. Needs monitoring.
-- **HIGH RISK** (Red): Severe symptoms (e.g., chest pain, difficulty breathing, high fever > 3 days, bleeding). IMMEDIATE DOCTOR VISIT.
-
-*Logic*: Use keyword matching and intent detection.
-- High Risk Keywords: "Chest pain", "Can't breathe", "Unconscious", "Bleeding", "High fever", "Severe pain".
+Categorization Guidelines:
+- **HIGH RISK** (Red Alert):
+  - Emergency / Severe Symptoms: Chest pain, difficulty breathing / shortness of breath, sudden numbness, high fever >3 days, severe bleeding, retro-orbital pain with bleeding/platelet drop, coughing blood, severe abdominal pain, unconsciousness.
+  - Action: Recommend IMMEDIATE Doctor / Emergency Visit.
+- **MEDIUM RISK** (Yellow Warning):
+  - Infectious Diseases & Moderate Symptoms: **Dengue**, **Malaria**, **Tuberculosis**, **Typhoid**, **Cholera**, fever (1-2 days), joint/muscle pain, persistent cough, vomiting, diarrhea, diabetes symptom check, blood pressure concerns.
+  - MANDATORY RULE: ANY query regarding Dengue, Malaria, or infectious tropical diseases MUST be classified as at least **MEDIUM RISK** (or **HIGH RISK** if severe symptoms are present). NEVER classify Dengue or Malaria as LOW RISK.
+  - Action: Recommend Medical Evaluation within 24-48 hours.
+- **LOW RISK** (Green Safe):
+  - General Healthy Lifestyle & Hygiene: Purely general wellness queries like hand washing technique, daily water intake, basic nutrition/diet, stretching exercises, sleep hygiene when NO disease or illness is mentioned.
+  - Action: Provide educational preventive advice.
 
 ====================================
 2. HYBRID CHAT MODE
 ====================================
 
 **SCENARIO A: FIRST RESPONSE to a new health query**
-You MUST use this EXACT structure:
+You MUST start with this EXACT first line:
 
 **RISK LEVEL: [LOW/MEDIUM/HIGH]**
 
@@ -75,9 +83,6 @@ You MUST use this EXACT structure:
 
 // Helper: Call Groq API
 async function generateAIResponse(messages, customSystemPrompt = null) {
-    // console.log("Calling Groq API...");
-
-    // Prepare messages for Groq
     const sysPrompt = customSystemPrompt !== null ? customSystemPrompt : SYSTEM_PROMPT;
 
     const groqMessages = [];
@@ -85,7 +90,6 @@ async function generateAIResponse(messages, customSystemPrompt = null) {
         groqMessages.push({ role: "system", content: sysPrompt });
     }
 
-    // Add rest of the messages
     messages.forEach(msg => {
         groqMessages.push({
             role: msg.role === 'model' ? 'assistant' : msg.role,
@@ -96,7 +100,7 @@ async function generateAIResponse(messages, customSystemPrompt = null) {
     try {
         const completion = await groq.chat.completions.create({
             messages: groqMessages,
-            model: "qwen/qwen3.8-27b", // Verified working model for this Groq API key
+            model: "qwen/qwen3.8-27b",
             temperature: 0.7,
             max_tokens: 1000
         });
@@ -113,46 +117,41 @@ router.get('/history/:userId', async (req, res) => {
     try {
         const userId = req.params.userId;
 
-        // 1. Auto-Cleanup Expired Messages
-        const user = await User.findById(userId);
-        if (user && user.historyRetention && user.historyRetention !== 'off') {
-            const retention = user.historyRetention;
-            let cutoff = new Date();
+        // Auto-Cleanup Expired Messages if user has retention setting
+        if (mongoose.Types.ObjectId.isValid(userId)) {
+            const user = await User.findById(userId);
+            if (user && user.historyRetention && user.historyRetention !== 'off') {
+                const retention = user.historyRetention;
+                let cutoff = new Date();
 
-            switch (retention) {
-                case '24h': cutoff.setHours(cutoff.getHours() - 24); break;
-                case '3d': cutoff.setDate(cutoff.getDate() - 3); break;
-                case '7d': cutoff.setDate(cutoff.getDate() - 7); break;
-                case '28d': cutoff.setDate(cutoff.getDate() - 28); break;
-            }
+                switch (retention) {
+                    case '24h': cutoff.setHours(cutoff.getHours() - 24); break;
+                    case '3d': cutoff.setDate(cutoff.getDate() - 3); break;
+                    case '7d': cutoff.setDate(cutoff.getDate() - 7); break;
+                    case '28d': cutoff.setDate(cutoff.getDate() - 28); break;
+                }
 
-            // Delete expired messages
-            await Message.deleteMany({ userId: userId, timestamp: { $lt: cutoff } });
+                await Message.deleteMany({ userId: userId, timestamp: { $lt: cutoff } });
 
-            // 2. Cleanup: Remove chats that have no messages left (Empty Sessions)
-            // Get all chats for this user
-            const userChats = await Chat.find({ userId }).select('_id');
-            const userChatIds = userChats.map(c => c._id);
+                const userChats = await Chat.find({ userId }).select('_id');
+                const userChatIds = userChats.map(c => c._id);
 
-            if (userChatIds.length > 0) {
-                // Find which of these chats still have at least one message (User or Model)
-                const activeSessionIds = await Message.distinct('sessionId', {
-                    sessionId: { $in: userChatIds }
-                });
+                if (userChatIds.length > 0) {
+                    const activeSessionIds = await Message.distinct('sessionId', {
+                        sessionId: { $in: userChatIds }
+                    });
 
-                // Filter out the active ones to find empty ones
-                // Convert to string for reliable comparison
-                const activeSet = new Set(activeSessionIds.map(id => id.toString()));
-                const emptyChatIds = userChatIds.filter(id => !activeSet.has(id.toString()));
+                    const activeSet = new Set(activeSessionIds.map(id => id.toString()));
+                    const emptyChatIds = userChatIds.filter(id => !activeSet.has(id.toString()));
 
-                if (emptyChatIds.length > 0) {
-                    // console.log(`Cleaning up ${emptyChatIds.length} empty chat sessions for user ${userId}`);
-                    await Chat.deleteMany({ _id: { $in: emptyChatIds } });
+                    if (emptyChatIds.length > 0) {
+                        await Chat.deleteMany({ _id: { $in: emptyChatIds } });
+                    }
                 }
             }
         }
 
-        const chats = await Chat.find({ userId: req.params.userId }).sort({ updatedAt: -1 });
+        const chats = await Chat.find({ userId }).sort({ updatedAt: -1 });
         res.json(chats);
     } catch (error) {
         console.error("History Fetch Error:", error);
@@ -164,7 +163,7 @@ router.get('/history/:userId', async (req, res) => {
 router.post('/new', async (req, res) => {
     try {
         const { userId } = req.body;
-        const newChat = new Chat({ userId });
+        const newChat = new Chat({ userId: userId || 'guest' });
         await newChat.save();
         res.json(newChat);
     } catch (error) {
@@ -175,8 +174,10 @@ router.post('/new', async (req, res) => {
 // Delete a chat session and its messages
 router.delete('/:chatId', async (req, res) => {
     try {
-        await Chat.findByIdAndDelete(req.params.chatId);
-        await Message.deleteMany({ sessionId: req.params.chatId });
+        if (mongoose.Types.ObjectId.isValid(req.params.chatId)) {
+            await Chat.findByIdAndDelete(req.params.chatId);
+            await Message.deleteMany({ sessionId: req.params.chatId });
+        }
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: 'Failed to delete chat' });
@@ -192,10 +193,10 @@ router.post('/message', async (req, res) => {
         let isNew = false;
         let messageCount = 0;
 
-        // 1. Try DB Session Get/Create (Fault-Tolerant)
+        // 1. Try DB Session Get/Create (With valid ObjectId check)
         try {
             if (mongoose.connection.readyState === 1) {
-                if (chatId) {
+                if (chatId && mongoose.Types.ObjectId.isValid(chatId)) {
                     chat = await Chat.findById(chatId);
                 }
 
@@ -241,7 +242,7 @@ router.post('/message', async (req, res) => {
         try {
             let history = [{ role: 'user', content: message }];
 
-            // Try fetching recent history if DB connected
+            // Try fetching recent history if DB connected and session exists
             if (chat && mongoose.connection.readyState === 1) {
                 const recentMessages = await Message.find({ sessionId: chat._id }).sort({ timestamp: -1 }).limit(10);
                 const sortedMessages = recentMessages.reverse();
@@ -282,7 +283,7 @@ router.post('/message', async (req, res) => {
             console.warn("⚠️ Could not save AI message to DB:", dbErr.message);
         }
 
-        const effectiveChatId = chat ? chat._id : (chatId || 'guest-session');
+        const effectiveChatId = chat ? chat._id.toString() : (chatId || 'guest-session');
         const effectiveTitle = chat ? chat.title : message.substring(0, 30);
 
         res.json({ reply: responseText, chatId: effectiveChatId, title: effectiveTitle });
@@ -296,6 +297,9 @@ router.post('/message', async (req, res) => {
 // Get a specific chat (Session + Messages)
 router.get('/:chatId', async (req, res) => {
     try {
+        if (!mongoose.Types.ObjectId.isValid(req.params.chatId)) {
+            return res.json({ messages: [], title: "New Chat" });
+        }
         const chat = await Chat.findById(req.params.chatId);
         if (!chat) return res.status(404).json({ error: 'Chat not found' });
 
@@ -303,6 +307,7 @@ router.get('/:chatId', async (req, res) => {
 
         res.json({ ...chat.toObject(), messages });
     } catch (error) {
+        console.error("Load Chat Error:", error);
         res.status(500).json({ error: 'Failed to load chat' });
     }
 });

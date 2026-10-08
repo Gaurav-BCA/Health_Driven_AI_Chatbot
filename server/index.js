@@ -1,4 +1,12 @@
 require('dotenv').config();
+const dns = require('dns');
+// Set public DNS servers to bypass local Wi-Fi DNS SRV resolution blocks
+try {
+    dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {
+    console.warn("Could not set custom DNS servers:", e.message);
+}
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');

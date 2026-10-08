@@ -96,7 +96,7 @@ async function generateAIResponse(messages, customSystemPrompt = null) {
     try {
         const completion = await groq.chat.completions.create({
             messages: groqMessages,
-            model: "llama-3.3-70b-versatile", // Using Llama 3.3 70B Versatile
+            model: "qwen/qwen3.8-27b", // Verified working model for this Groq API key
             temperature: 0.7,
             max_tokens: 1000
         });
@@ -188,73 +188,73 @@ router.post('/message', async (req, res) => {
     try {
         const { chatId, message, userId } = req.body;
 
-        let chat;
+        let chat = null;
         let isNew = false;
         let messageCount = 0;
 
-        // 1. Get or Create Session
-        if (chatId) {
-            chat = await Chat.findById(chatId);
+        // 1. Try DB Session Get/Create (Fault-Tolerant)
+        try {
+            if (mongoose.connection.readyState === 1) {
+                if (chatId) {
+                    chat = await Chat.findById(chatId);
+                }
+
+                if (!chat) {
+                    chat = new Chat({ userId: userId || 'guest' });
+                    await chat.save();
+                    isNew = true;
+                } else {
+                    messageCount = await Message.countDocuments({ sessionId: chat._id });
+                }
+
+                // Save User Message
+                const userMsg = new Message({
+                    sessionId: chat._id,
+                    userId: userId || 'guest',
+                    role: 'user',
+                    content: message
+                });
+                await userMsg.save();
+            }
+        } catch (dbErr) {
+            console.warn("⚠️ MongoDB Operation Warning:", dbErr.message);
         }
 
-        if (!chat) {
-            chat = new Chat({ userId: userId || 'guest' });
-            await chat.save();
-            isNew = true;
-        } else {
-            messageCount = await Message.countDocuments({ sessionId: chat._id });
-        }
-
-        // 2. Save User Message
-        const userMsg = new Message({
-            sessionId: chat._id,
-            userId: userId || 'guest',
-            role: 'user',
-            content: message
-        });
-        await userMsg.save();
-
-        // 3. Generate Title (if new)
-        if (isNew || messageCount <= 2) {
+        // 2. Generate Title (if new and DB available)
+        if (chat && (isNew || messageCount <= 2)) {
             try {
                 const titlePrompt = `Analyze the following user health query and generate a short, specific title (max 4-5 words) that summarizes the health condition or topic. 
-                Examples: "Chest Pain Causes", "Diabetes Management", "Fever Symptoms".
                 User Query: "${message}"
                 Title:`;
                 const promptMsg = [{ role: "user", content: titlePrompt }];
-                // Use a minimal system prompt for title generation to avoid "Health Topics Only" refusal
                 const aiTitle = await generateAIResponse(promptMsg, "You are a helpful assistant that generates short titles.");
                 chat.title = aiTitle?.replace(/["']/g, '').trim() || message.substring(0, 30);
+                if (mongoose.connection.readyState === 1) await chat.save();
             } catch (err) {
-                console.error("Title Generation Failed:", err);
-                const fallbackTitle = message.substring(0, 30);
-                chat.title = fallbackTitle + (message.length > 30 ? '...' : '');
+                console.error("Title Generation Failed:", err.message);
             }
-            await chat.save();
         }
 
-        // 4. Generate AI Response
+        // 3. Generate AI Response
         let responseText = "I'm sorry, I'm having trouble connecting right now. Please try again later.";
 
         try {
-            // Fetch recent messages for context (Sort DESC to get latest, then reverse)
-            const recentMessages = await Message.find({ sessionId: chat._id }).sort({ timestamp: -1 }).limit(10);
+            let history = [{ role: 'user', content: message }];
 
-            // Reorder to chronological (oldest to newest)
-            const sortedMessages = recentMessages.reverse();
-
-            const history = sortedMessages.map(m => ({
-                role: m.role === 'model' ? 'assistant' : 'user',
-                content: m.content
-            }));
-
-            // Add instruction for FIRST message response style if count is low
-            if (messageCount === 0) {
-                // Append to the last user message instead of adding a 'system' role in the middle
-                // causing API validation errors.
-                if (history.length > 0 && history[history.length - 1].role === 'user') {
-                    history[history.length - 1].content += "\n\n(System Note: This is the user's first contact. Be welcoming and structured.)";
+            // Try fetching recent history if DB connected
+            if (chat && mongoose.connection.readyState === 1) {
+                const recentMessages = await Message.find({ sessionId: chat._id }).sort({ timestamp: -1 }).limit(10);
+                const sortedMessages = recentMessages.reverse();
+                if (sortedMessages.length > 0) {
+                    history = sortedMessages.map(m => ({
+                        role: m.role === 'model' ? 'assistant' : 'user',
+                        content: m.content
+                    }));
                 }
+            }
+
+            if (messageCount === 0 && history.length > 0 && history[history.length - 1].role === 'user') {
+                history[history.length - 1].content += "\n\n(System Note: This is the user's first contact. Be welcoming and structured.)";
             }
 
             responseText = await generateAIResponse(history);
@@ -264,19 +264,28 @@ router.post('/message', async (req, res) => {
             responseText = "Sorry, I am currently unable to reach the AI service. Your message has been saved.";
         }
 
-        // 5. Save AI Message
-        const botMsg = new Message({
-            sessionId: chat._id,
-            userId: 'ai',
-            role: 'model',
-            content: responseText
-        });
-        await botMsg.save();
+        // 4. Save AI Message (if DB available)
+        try {
+            if (chat && mongoose.connection.readyState === 1) {
+                const botMsg = new Message({
+                    sessionId: chat._id,
+                    userId: 'ai',
+                    role: 'model',
+                    content: responseText
+                });
+                await botMsg.save();
 
-        chat.updatedAt = new Date();
-        await chat.save();
+                chat.updatedAt = new Date();
+                await chat.save();
+            }
+        } catch (dbErr) {
+            console.warn("⚠️ Could not save AI message to DB:", dbErr.message);
+        }
 
-        res.json({ reply: responseText, chatId: chat._id, title: chat.title });
+        const effectiveChatId = chat ? chat._id : (chatId || 'guest-session');
+        const effectiveTitle = chat ? chat.title : message.substring(0, 30);
+
+        res.json({ reply: responseText, chatId: effectiveChatId, title: effectiveTitle });
 
     } catch (error) {
         console.error("Chat Error:", error);

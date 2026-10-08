@@ -2,11 +2,15 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 
 // Signup
 router.post('/signup', async (req, res) => {
     try {
+        if (mongoose.connection.readyState !== 1) {
+            return res.status(503).json({ error: 'Database is not connected on server. Please verify MONGODB_URI in server/.env' });
+        }
         const { name, email, mobile, password } = req.body;
 
         // Check if user already exists
@@ -61,6 +65,9 @@ router.post('/signup', async (req, res) => {
 // Signin
 router.post('/signin', async (req, res) => {
     try {
+        if (mongoose.connection.readyState !== 1) {
+            return res.status(503).json({ error: 'Database is not connected on server. Please verify MONGODB_URI in server/.env' });
+        }
         const { email, password } = req.body;
 
         // Find user

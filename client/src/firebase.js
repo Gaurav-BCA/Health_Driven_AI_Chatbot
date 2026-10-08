@@ -12,8 +12,8 @@ const firebaseConfig = {
 
 let app, auth, googleProvider;
 
-// Only initialize Firebase if the API key is provided
-if (firebaseConfig.apiKey) {
+// Only initialize Firebase if a real (non-placeholder) API key is provided
+if (firebaseConfig.apiKey && firebaseConfig.apiKey !== 'your_api_key' && !firebaseConfig.apiKey.includes('your_')) {
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     googleProvider = new GoogleAuthProvider();

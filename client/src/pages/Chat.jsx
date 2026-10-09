@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Plus, Trash2, Shield, Droplet, Bug, Activity, LogOut, HeartPulse, User, Paperclip, Mic, X, Bot, Settings, Volume2, VolumeX, MapPin } from 'lucide-react';
+import { Send, Plus, Trash2, Shield, Droplet, Bug, Activity, LogOut, HeartPulse, User, Paperclip, Mic, X, Bot, Settings, Volume2, VolumeX, MapPin, PanelLeft } from 'lucide-react';
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -8,7 +8,7 @@ import ThemeToggle from '../components/ThemeToggle';
 const Chat = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768);
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
@@ -456,17 +456,24 @@ const Chat = () => {
             )}
 
             {/* Header */}
-            <header className="h-20 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 z-20 shadow-sm shrink-0 transition-colors duration-300">
-                <div className="flex items-center gap-4 animate-slide-down">
+            <header className="h-16 sm:h-20 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-3 sm:px-6 z-50 shadow-sm shrink-0 transition-colors duration-300">
+                <div className="flex items-center gap-2 sm:gap-4 animate-slide-down">
                     <button
                         onClick={() => setSidebarOpen(!sidebarOpen)}
-                        className="bg-green-600 p-2 rounded-xl hover:bg-green-700 transition-all cursor-pointer border-none outline-none shadow-sm hover:shadow-md active:scale-95 group"
+                        className="p-2 sm:p-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all cursor-pointer border border-slate-200 dark:border-slate-700 active:scale-95 shrink-0"
+                        title={sidebarOpen ? "Close history" : "Open history"}
+                        aria-label="Toggle chat history"
                     >
-                        <HeartPulse className="w-6 h-6 text-white group-hover:animate-pulse" />
+                        <PanelLeft className="w-5 h-5 text-slate-700 dark:text-slate-200" />
                     </button>
-                    <Link to="/" className="flex flex-col group">
-                        <h1 className="text-xl font-extrabold text-green-700 dark:text-green-500 leading-none tracking-tight group-hover:text-green-800 transition-colors">Arogya AI</h1>
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold tracking-[0.15em] uppercase">Health Companion</span>
+                    <Link to="/" className="flex items-center gap-2 group">
+                        <div className="bg-green-600 p-1.5 sm:p-2 rounded-xl group-hover:bg-green-700 transition-colors shadow-sm shrink-0">
+                            <HeartPulse className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex flex-col">
+                            <h1 className="text-lg sm:text-xl font-extrabold text-green-700 dark:text-green-500 leading-none tracking-tight group-hover:text-green-800 transition-colors">Arogya AI</h1>
+                            <span className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 font-bold tracking-[0.15em] uppercase">Health Companion</span>
+                        </div>
                     </Link>
                 </div>
 
@@ -483,7 +490,7 @@ const Chat = () => {
                     <div className="px-6 py-1.5 text-sm font-semibold text-green-700 dark:text-green-400 bg-white dark:bg-slate-700 rounded-md shadow-sm">Chat</div>
                 </div>
 
-                <div className="flex items-center gap-6 animate-slide-down delay-100">
+                <div className="flex items-center gap-2 sm:gap-4 md:gap-6 animate-slide-down delay-100">
                     <button
                         onClick={() => setShowSettings(true)}
                         className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
@@ -492,36 +499,51 @@ const Chat = () => {
                         <Settings className="w-5 h-5" />
                     </button>
                     <ThemeToggle />
-                    <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                            <User className="w-5 h-5" />
+                    <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="w-8 h-8 sm:w-9 sm:h-9 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                            <User className="w-4 h-4 sm:w-5 sm:h-5" />
                         </div>
-                        <div className="hidden sm:block">
+                        <div className="hidden lg:block">
                             <p className="text-sm font-bold text-slate-800 dark:text-slate-200 leading-none">
                                 {user?.name || 'Guest User'}
                             </p>
                             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Online</p>
                         </div>
                     </div>
-                    <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-2 hidden sm:block"></div>
-                    <button onClick={handleSignOut} className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 px-3 py-2 rounded-lg transition-all text-sm font-semibold group" title="Sign Out">
+                    <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
+                    <button onClick={handleSignOut} className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 p-2 sm:px-3 sm:py-2 rounded-lg transition-all text-sm font-semibold group" title="Sign Out">
                         <LogOut className="w-5 h-5 group-hover:stroke-red-600 dark:group-hover:stroke-red-400 transition-colors" />
                         <span className="hidden sm:inline">Sign Out</span>
                     </button>
                 </div>
             </header>
 
+            {/* Mobile Drawer Overlay Backdrop (starts below header) */}
+            {sidebarOpen && (
+                <div
+                    className="fixed top-16 sm:top-20 inset-x-0 bottom-0 bg-black/50 z-30 md:hidden backdrop-blur-xs transition-opacity"
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
+
             {/* Main Container */}
-            <div className="flex flex-1 overflow-hidden">
-                {/* Sidebar */}
-                <aside className={`${sidebarOpen ? 'w-72' : 'w-0'} bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-all duration-300`}>
-                    <div className="p-4">
+            <div className="flex flex-1 overflow-hidden relative">
+                {/* Sidebar (slides out underneath header on mobile) */}
+                <aside className={`fixed top-16 sm:top-20 bottom-0 left-0 z-40 w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-all duration-300 transform md:relative md:top-0 md:z-auto ${sidebarOpen ? 'translate-x-0 md:w-72 md:opacity-100' : '-translate-x-full md:w-0 md:opacity-0 md:overflow-hidden'} shadow-2xl md:shadow-none`}>
+                    <div className="p-4 flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 md:border-none">
                         <button
                             onClick={handleNewChat}
-                            className="w-full flex items-center justify-center gap-2 bg-slate-900 dark:bg-green-600 text-white px-4 py-3 rounded-xl hover:bg-slate-800 dark:hover:bg-green-700 transition-all font-semibold shadow-sm"
+                            className="flex-1 flex items-center justify-center gap-2 bg-slate-900 dark:bg-green-600 text-white px-4 py-3 rounded-xl hover:bg-slate-800 dark:hover:bg-green-700 transition-all font-semibold shadow-sm text-sm"
                         >
                             <Plus className="w-5 h-5" />
                             New Chat
+                        </button>
+                        <button
+                            onClick={() => setSidebarOpen(false)}
+                            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 md:hidden rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                            title="Close history"
+                        >
+                            <X className="w-5 h-5" />
                         </button>
                     </div>
 
@@ -541,45 +563,56 @@ const Chat = () => {
                                 <span className="truncate flex-1">{chat.title || 'New Chat'}</span>
                                 <button
                                     onClick={(e) => handleDeleteChat(e, chat._id)}
-                                    className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 rounded-md transition-all"
+                                    className="opacity-100 md:opacity-0 md:group-hover:opacity-100 p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 rounded-md transition-all"
                                 >
                                     <Trash2 className="w-4 h-4" />
                                 </button>
                             </div>
                         ))}
                     </div>
+
+                    {/* Mobile Quick Action Link */}
+                    <div className="p-3 border-t border-slate-100 dark:border-slate-800 md:hidden mt-auto shrink-0">
+                        <button
+                            onClick={handleFindHospitals}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-all border border-red-200 shadow-xs"
+                        >
+                            <MapPin className="w-4 h-4" />
+                            Find Hospitals Near Me
+                        </button>
+                    </div>
                 </aside>
 
                 {/* Main Chat Content */}
-                <main className="flex-1 flex flex-col relative bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+                <main className="flex-1 flex flex-col relative bg-slate-50 dark:bg-slate-950 transition-colors duration-300 min-w-0">
                     <div className="flex-1 overflow-y-auto">
                         {isLoadingChat ? (
                             <div className="h-full flex items-center justify-center">
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
                             </div>
                         ) : messages.length === 0 ? (
-                            <div className="h-full flex flex-col items-center justify-center p-6">
-                                <div className="bg-gradient-to-br from-green-500 to-green-600 p-4 rounded-2xl shadow-lg mb-6 shadow-green-200 dark:shadow-green-900/20 animate-slide-up">
-                                    <HeartPulse className="w-8 h-8 text-white" />
+                            <div className="h-full flex flex-col items-center justify-center p-4 sm:p-6">
+                                <div className="bg-gradient-to-br from-green-500 to-green-600 p-3 sm:p-4 rounded-2xl shadow-lg mb-4 sm:mb-6 shadow-green-200 dark:shadow-green-900/20 animate-slide-up">
+                                    <HeartPulse className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
                                 </div>
-                                <h2 className="text-3xl md:text-4xl font-black text-slate-800 dark:text-white mb-2 animate-slide-up delay-100">
+                                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-800 dark:text-white mb-2 text-center animate-slide-up delay-100">
                                     Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening'}, {user?.name?.split(' ')[0] || 'Friend'}! 👋
                                 </h2>
-                                <p className="text-slate-500 dark:text-slate-400 font-medium mb-12 max-w-lg text-center leading-relaxed animate-slide-up delay-200">
+                                <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 font-medium mb-8 sm:mb-12 max-w-lg text-center leading-relaxed animate-slide-up delay-200">
                                     How can I help you today? I can help you identify symptoms, understand diseases, and find prevention tips.
                                 </p>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl animate-slide-up delay-300">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 w-full max-w-2xl animate-slide-up delay-300">
                                     {diseases.map((d, i) => (
                                         <button
                                             key={i}
                                             onClick={() => handleCardClick(d.name)}
-                                            className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:border-green-500 dark:hover:border-green-500 hover:shadow-md transition-all group text-left"
+                                            className="flex items-center justify-between p-3.5 sm:p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:border-green-500 dark:hover:border-green-500 hover:shadow-md transition-all group text-left"
                                         >
-                                            <div className="flex items-center gap-4">
-                                                <div className={`p-2.5 rounded-lg bg-${d.color}-50 dark:bg-${d.color}-900/20 text-${d.color}-600 dark:text-${d.color}-400`}>
+                                            <div className="flex items-center gap-3 sm:gap-4">
+                                                <div className={`p-2 sm:p-2.5 rounded-lg bg-${d.color}-50 dark:bg-${d.color}-900/20 text-${d.color}-600 dark:text-${d.color}-400`}>
                                                     {d.icon}
                                                 </div>
-                                                <span className="font-bold text-slate-700 dark:text-slate-200">{d.name}</span>
+                                                <span className="font-bold text-sm sm:text-base text-slate-700 dark:text-slate-200">{d.name}</span>
                                             </div>
                                             <div className="text-slate-300 dark:text-slate-600 group-hover:text-green-500 dark:group-hover:text-green-400 transition-colors">
                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
@@ -589,25 +622,25 @@ const Chat = () => {
                                 </div>
                             </div>
                         ) : (
-                            <div className="p-6 space-y-6 max-w-3xl mx-auto">
+                            <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 max-w-3xl mx-auto">
                                 {messages.map((msg, idx) => {
                                     const riskLevel = msg.role === 'bot' ? getRiskLevel(msg.text) : null;
                                     return (
-                                        <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-slide-up mb-6`}>
-                                            <div className={`flex items-end gap-3 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                                        <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-slide-up mb-4 sm:mb-6`}>
+                                            <div className={`flex items-end gap-2 sm:gap-3 max-w-[90%] sm:max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                                                 {/* Avatar */}
-                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user'
+                                                <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user'
                                                     ? 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                                                     : 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
                                                     }`}>
-                                                    {msg.role === 'user' ? <User className="w-5 h-5" /> : <HeartPulse className="w-5 h-5" />}
+                                                    {msg.role === 'user' ? <User className="w-4 h-4 sm:w-5 sm:h-5" /> : <HeartPulse className="w-4 h-4 sm:w-5 sm:h-5" />}
                                                 </div>
 
                                                 {/* Message Bubble + Banner Wrapper */}
-                                                <div className="flex flex-col gap-1 w-full">
+                                                <div className="flex flex-col gap-1 w-full min-w-0">
                                                     {/* Risk Banner */}
                                                     {riskLevel && (
-                                                        <div className={`text-xs font-bold px-3 py-1 rounded-t-lg w-max mb-[-4px] z-10 ${riskLevel === 'high' ? 'bg-red-600 text-white' :
+                                                        <div className={`text-[11px] sm:text-xs font-bold px-2.5 py-1 rounded-t-lg w-max mb-[-4px] z-10 ${riskLevel === 'high' ? 'bg-red-600 text-white' :
                                                             riskLevel === 'medium' ? 'bg-yellow-500 text-white' :
                                                                 'bg-green-600 text-white'
                                                             }`}>
@@ -620,20 +653,20 @@ const Chat = () => {
                                                         </div>
                                                     )}
 
-                                                    <div className={`rounded-2xl px-6 py-4 shadow-sm ${msg.role === 'user'
+                                                    <div className={`rounded-2xl px-4 sm:px-6 py-3 sm:py-4 shadow-sm ${msg.role === 'user'
                                                         ? 'bg-green-600 text-white rounded-br-none'
                                                         : `bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 ${riskLevel ? 'rounded-tl-none' : 'rounded-bl-none'}`
                                                         }`}>
-                                                        <div className="prose dark:prose-invert max-w-none text-sm leading-relaxed">
+                                                        <div className="prose dark:prose-invert max-w-none text-xs sm:text-sm leading-relaxed overflow-x-auto">
                                                             {msg.role === 'user' ? (
                                                                 <p className="whitespace-pre-wrap">{msg.text}</p>
                                                             ) : (
                                                                 <ReactMarkdown
                                                                     remarkPlugins={[remarkGfm]}
                                                                     components={{
-                                                                        h1: ({ node, ...props }) => <h1 className="text-xl font-bold text-green-700 dark:text-green-400 mb-2 mt-4" {...props} />,
-                                                                        h2: ({ node, ...props }) => <h2 className="text-lg font-bold text-green-700 dark:text-green-400 mb-2 mt-3" {...props} />,
-                                                                        h3: ({ node, ...props }) => <h3 className="text-md font-bold text-green-600 dark:text-green-500 mb-1 mt-2" {...props} />,
+                                                                        h1: ({ node, ...props }) => <h1 className="text-lg sm:text-xl font-bold text-green-700 dark:text-green-400 mb-2 mt-4" {...props} />,
+                                                                        h2: ({ node, ...props }) => <h2 className="text-base sm:text-lg font-bold text-green-700 dark:text-green-400 mb-2 mt-3" {...props} />,
+                                                                        h3: ({ node, ...props }) => <h3 className="text-sm sm:text-md font-bold text-green-600 dark:text-green-500 mb-1 mt-2" {...props} />,
                                                                         ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-2 space-y-1" {...props} />,
                                                                         ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mb-2 space-y-1" {...props} />,
                                                                         li: ({ node, ...props }) => <li className="pl-1" {...props} />,
@@ -648,9 +681,9 @@ const Chat = () => {
                                                     </div>
                                                 </div>
 
-                                                {/* Speaker Button - Moved OUTSIDE the wrapper to sit next to it */}
+                                                {/* Speaker Button */}
                                                 {msg.role === 'bot' && (
-                                                    <div className="mb-1">
+                                                    <div className="mb-1 shrink-0">
                                                         <button
                                                             onClick={() => handleSpeak(msg.text, idx)}
                                                             className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-green-600 dark:text-slate-500 dark:hover:text-green-400 transition-colors"
@@ -670,9 +703,9 @@ const Chat = () => {
                                 })}
                                 {isTyping && (
                                     <div className="flex justify-start animate-slide-up">
-                                        <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl rounded-bl-none py-4 px-5 shadow-sm flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center border border-green-200 dark:border-green-800">
-                                                <Bot className="w-5 h-5 text-green-600 dark:text-green-400" />
+                                        <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl rounded-bl-none py-3 px-4 sm:py-4 sm:px-5 shadow-sm flex items-center gap-3">
+                                            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center border border-green-200 dark:border-green-800">
+                                                <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
                                             </div>
                                             <div className="flex space-x-1.5">
                                                 <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
@@ -687,20 +720,20 @@ const Chat = () => {
                         )}
                     </div>
 
-                    <div className="p-6 bg-slate-50 dark:bg-slate-950 animate-slide-up delay-400 transition-colors duration-300">
-                        <div className="max-w-4xl mx-auto cursor-text bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex items-center p-2 focus-within:ring-2 focus-within:ring-green-500/20 focus-within:border-green-500 transition-all">
+                    <div className="p-3 sm:p-6 bg-slate-50 dark:bg-slate-950 animate-slide-up delay-400 transition-colors duration-300">
+                        <div className="max-w-4xl mx-auto cursor-text bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex items-center p-1.5 sm:p-2 focus-within:ring-2 focus-within:ring-green-500/20 focus-within:border-green-500 transition-all">
                             <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
                             <button
                                 onClick={() => fileInputRef.current?.click()}
-                                className="p-3 text-slate-400 hover:text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all"
+                                className="p-2 sm:p-3 text-slate-400 hover:text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all shrink-0"
                                 title="Attach File"
                             >
-                                <Paperclip className="w-5 h-5" />
+                                <Paperclip className="w-4 h-4 sm:w-5 sm:h-5" />
                             </button>
                             <input
                                 type="text"
-                                placeholder={isListening ? (voiceLang === 'hi-IN' ? "सुन रहा हूँ..." : "Listening...") : (voiceLang === 'hi-IN' ? "अपने लक्षण लिखें..." : "Type your symptoms or health questions...")}
-                                className={`flex-1 bg-transparent border-none outline-none px-4 py-2 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 font-medium h-12 ${isListening ? 'animate-pulse text-green-600' : ''}`}
+                                placeholder={isListening ? (voiceLang === 'hi-IN' ? "सुन रहा हूँ..." : "Listening...") : (voiceLang === 'hi-IN' ? "अपने लक्षण लिखें..." : "Type symptoms...")}
+                                className={`flex-1 min-w-0 bg-transparent border-none outline-none px-2 sm:px-4 py-2 text-sm sm:text-base text-slate-700 dark:text-slate-200 placeholder:text-slate-400 font-medium h-10 sm:h-12 ${isListening ? 'animate-pulse text-green-600' : ''}`}
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
@@ -709,7 +742,7 @@ const Chat = () => {
                             {/* Voice Language Toggle */}
                             <button
                                 onClick={() => setVoiceLang(prev => prev === 'en-US' ? 'hi-IN' : 'en-US')}
-                                className="px-2 py-1 text-xs font-bold text-slate-500 hover:text-green-600 transition-colors border border-slate-200 dark:border-slate-700 rounded-md mr-1"
+                                className="px-1.5 sm:px-2 py-1 text-[11px] sm:text-xs font-bold text-slate-500 hover:text-green-600 transition-colors border border-slate-200 dark:border-slate-700 rounded-md mr-1 shrink-0"
                                 title="Switch Voice Language"
                             >
                                 {voiceLang === 'hi-IN' ? 'हिन्दी' : 'EN'}
@@ -717,26 +750,26 @@ const Chat = () => {
 
                             <button
                                 onClick={toggleVoiceInput}
-                                className={`p-3 rounded-xl transition-all mr-1 ${isListening ? 'bg-red-100 text-red-500 animate-pulse' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                                className={`p-2 sm:p-3 rounded-xl transition-all mr-1 shrink-0 ${isListening ? 'bg-red-100 text-red-500 animate-pulse' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                                 title="Voice Input"
                             >
-                                <Mic className="w-5 h-5" />
+                                <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
                             </button>
                             <button
                                 onClick={handleSend}
-                                className="p-3 bg-slate-900 dark:bg-green-600 text-white rounded-xl hover:bg-slate-800 dark:hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                                className="p-2.5 sm:p-3 bg-slate-900 dark:bg-green-600 text-white rounded-xl hover:bg-slate-800 dark:hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shrink-0"
                                 disabled={!input.trim()}
                             >
-                                <Send className="w-5 h-5" />
+                                <Send className="w-4 h-4 sm:w-5 sm:h-5" />
                             </button>
                         </div>
-                        <p className="text-center text-xs text-slate-500 mt-3 font-medium">
+                        <p className="text-center text-[10px] sm:text-xs text-slate-500 mt-2 sm:mt-3 font-medium">
                             ⚠️ Arogya AI can make mistakes. Always consult a doctor for medical advice.
                         </p>
                     </div>
                 </main>
-            </div >
-        </div >
+            </div>
+        </div>
     );
 };
 
